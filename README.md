@@ -1,15 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Web Dashers</title>
     <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
     <link rel="stylesheet" href="assets/style.css">
-
     <meta name="description" content="Web Dashers is a fan-made browser mod of the Geometry Dash Web Demo. It features the main levels, a built-in level creator, and a level search to play online levels. The project is actively in development, with more features and updates planned.">
     <meta name="theme-color" content="#C1FB3D">
 
+    <!-- Embeds -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://web-dashers.github.io/" />
     <meta property="og:title" content="Web Dashers" />
@@ -19,9 +20,10 @@
     <meta property="twitter:card" content="summary_large_image" />
     <meta property="twitter:url" content="https://web-dashers.github.io/" />
     <meta property="twitter:title" content="Web Dashers" />
-    <meta property="twitter:description" content="Web Dashers is a fan-made browser mod of the Geometry Dash Web Demo. It features the main levels, a built-in level creator, and a level search to play online levels. The project is actively in development, with more features and updates planned." />
+    <meta property="twitter:description" content="Web Dashers is a fan-made browser mod of the Geometry Dash Web Demo. It features the main levels, a built-in level creator, and a evel search to play online levels. The project is actively in development, with more features and updates planned." />
     <meta property="twitter:image" content="https://web-dashers.github.io/wd_assets/thumbnail_1024.png" />
 
+    <!-- Libraries and stuff -->
     <script src="assets/scripts/game/allObjects.js?latest"></script>
     <script src="assets/scripts/game/allLevels.js"></script>
     <script src="assets/scripts/libs/phaser.min.js"></script>
@@ -31,6 +33,7 @@
     <script src="assets/scripts/utils/api-config.js"></script>
     <script src="assets/scripts/api/account-api.js"></script>
 
+    <!-- Proxy fallback wrapper -->
     <script>
         (function () {
             var GD_PROXY_HOSTS = [
@@ -39,10 +42,8 @@
                 "fallbackgdproxy.webdashers.workers.dev",
                 "fallback2.webdashers.workers.dev"
             ];
-
             window._gdProxyUrl = GD_PROXY_HOSTS[0];
             window._gdProxyHosts = GD_PROXY_HOSTS;
-
             var activeIndex = 0;
             var nativeFetch = window.fetch.bind(window);
 
@@ -81,7 +82,8 @@
                     return nativeFetch(attemptInput, init).then(function (res) {
                         if ((res.status === 429 || res.status === 503) && attempts < GD_PROXY_HOSTS.length - 1) {
                             attempts++;
-                            return tryHost((hostIndex + 1) % GD_PROXY_HOSTS.length);
+                            var nextIndex = (hostIndex + 1) % GD_PROXY_HOSTS.length;
+                            return tryHost(nextIndex);
                         }
                         activeIndex = hostIndex;
                         window._gdProxyUrl = host;
@@ -90,7 +92,8 @@
                         lastError = err;
                         if (attempts < GD_PROXY_HOSTS.length - 1) {
                             attempts++;
-                            return tryHost((hostIndex + 1) % GD_PROXY_HOSTS.length);
+                            var nextIndex = (hostIndex + 1) % GD_PROXY_HOSTS.length;
+                            return tryHost(nextIndex);
                         }
                         throw lastError;
                     });
@@ -112,19 +115,7 @@
     <script defer src="assets/scripts/core/main.js"></script>
 
     <style>
-        html, body {
-            width: 100%;
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            background: #000;
-        }
-
-        body {
-            position: relative;
-        }
-
+        /* Mod / cheat menu */
         #wd-mod-button {
             position: fixed;
             top: 12px;
@@ -138,6 +129,7 @@
             font-family: Arial, sans-serif;
             font-size: 14px;
             cursor: pointer;
+            backdrop-filter: blur(6px);
         }
 
         #wd-mod-panel {
@@ -149,12 +141,13 @@
             overflow: auto;
             z-index: 99999;
             display: none;
-            background: rgba(18, 18, 18, 0.96);
+            background: rgba(18, 18, 18, 0.94);
             color: #fff;
             border-radius: 14px;
             padding: 16px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
             font-family: Arial, sans-serif;
+            backdrop-filter: blur(10px);
         }
 
         #wd-mod-panel.open {
@@ -233,9 +226,11 @@
     </style>
 
     <script>
+        // =========================
+        // Web Dashers Mod Settings
+        // =========================
         (function () {
             var STORAGE_KEY = "wd_mod_config_v1";
-
             var defaultConfig = {
                 godMode: false,
                 noClip: false,
@@ -256,14 +251,11 @@
             }
 
             function saveConfig(cfg) {
-                try {
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
-                } catch (e) {}
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
             }
 
             function setTexturePack(pack) {
                 var existing = document.getElementById("wd-texture-pack-stylesheet");
-
                 if (!existing) {
                     existing = document.createElement("link");
                     existing.id = "wd-texture-pack-stylesheet";
@@ -271,11 +263,15 @@
                     document.head.appendChild(existing);
                 }
 
+                // Put your texture pack files here:
+                // assets/texture-packs/<pack-name>/style.css
                 if (pack && pack !== "default") {
                     existing.href = "assets/texture-packs/" + encodeURIComponent(pack) + "/style.css";
                 } else {
                     existing.removeAttribute("href");
                 }
+
+                document.documentElement.setAttribute("data-texture-pack", pack);
             }
 
             function applyConfig(cfg) {
@@ -283,6 +279,10 @@
                 window.WD_CHEATS = cfg;
                 window.WD_TEXTURE_PACK = cfg.texturePack;
                 setTexturePack(cfg.texturePack);
+
+                window.dispatchEvent(new CustomEvent("wd-mods-changed", {
+                    detail: Object.assign({}, cfg)
+                }));
             }
 
             function buildMenu() {
@@ -297,28 +297,49 @@
                     <h2>Mod / Cheat Menu</h2>
 
                     <div class="wd-section">
-                        <label><span>God Mode</span><input type="checkbox" id="wd-godmode"></label>
-                        <label><span>No Clip</span><input type="checkbox" id="wd-noclip"></label>
-                        <label><span>Practice Mode</span><input type="checkbox" id="wd-practice"></label>
-                        <label><span>Auto Restart</span><input type="checkbox" id="wd-autorestart"></label>
-                        <label><span>Show Hitboxes</span><input type="checkbox" id="wd-hitboxes"></label>
+                        <label>
+                            <span>God Mode</span>
+                            <input type="checkbox" id="wd-godmode">
+                        </label>
+                        <label>
+                            <span>No Clip</span>
+                            <input type="checkbox" id="wd-noclip">
+                        </label>
+                        <label>
+                            <span>Practice Mode</span>
+                            <input type="checkbox" id="wd-practice">
+                        </label>
+                        <label>
+                            <span>Auto Restart</span>
+                            <input type="checkbox" id="wd-autorestart">
+                        </label>
+                        <label>
+                            <span>Show Hitboxes</span>
+                            <input type="checkbox" id="wd-hitboxes">
+                        </label>
                     </div>
 
                     <div class="wd-section">
-                        <label><span>Speed Multiplier</span></label>
+                        <label>
+                            <span>Speed Multiplier</span>
+                        </label>
                         <input type="number" id="wd-speed" min="0.25" max="4" step="0.05">
                         <div class="wd-small">Example: 1 = normal speed, 2 = double speed.</div>
                     </div>
 
                     <div class="wd-section">
-                        <label><span>Texture Pack</span></label>
+                        <label>
+                            <span>Texture Pack</span>
+                        </label>
                         <select id="wd-texture-pack">
                             <option value="default">Default</option>
                             <option value="classic">Classic</option>
                             <option value="neon">Neon</option>
                             <option value="pixel">Pixel</option>
                         </select>
-                        <div class="wd-small">Put pack CSS files in <code>assets/texture-packs/&lt;pack&gt;/style.css</code>.</div>
+                        <div class="wd-small">
+                            Put pack styles in <code>assets/texture-packs/&lt;pack&gt;/style.css</code>.
+                        </div>
                     </div>
 
                     <div class="wd-section">
@@ -327,10 +348,9 @@
 
                     <div class="wd-small">
                         Open/close menu: <b>M</b><br>
-                        Press <b>Esc</b> to close.
+                        Changes are saved automatically.
                     </div>
                 `;
-
                 document.body.appendChild(button);
                 document.body.appendChild(panel);
 
@@ -411,35 +431,45 @@
 
                 syncInputs();
 
+                window.WD_OPEN_MOD_MENU = function () {
+                    togglePanel(true);
+                };
+
+                window.WD_CLOSE_MOD_MENU = function () {
+                    togglePanel(false);
+                };
+
                 window.addEventListener("keydown", function (e) {
-                    if (e.key === "m" || e.key === "M") togglePanel();
-                    if (e.key === "Escape") togglePanel(false);
+                    if (e.key === "m" || e.key === "M") {
+                        togglePanel();
+                    }
+                    if (e.key === "Escape") {
+                        togglePanel(false);
+                    }
                 });
             }
 
-            function start() {
-                try {
-                    buildMenu();
-                } catch (err) {
-                    console.error("Mod menu error:", err);
-                }
-            }
-
             if (document.readyState === "loading") {
-                document.addEventListener("DOMContentLoaded", start);
+                document.addEventListener("DOMContentLoaded", buildMenu);
             } else {
-                start();
+                buildMenu();
             }
         })();
     </script>
 
     <script>
-        document.addEventListener("contextmenu", function (event) {
+        new ResizeObserver(() => {
+            window.dispatchEvent(new Event('resize'));
+        }).observe(document.documentElement);
+
+        document.oncontextmenu = (event) => {
             event.preventDefault();
-        });
+        };
     </script>
 </head>
 
 <body>
 </body>
+
 </html>
+
